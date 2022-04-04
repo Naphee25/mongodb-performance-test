@@ -25,6 +25,7 @@ public class Main {
 
 
     String host = DEFAULT_HOST;
+    String databaseType = null;
     int port = DEFAULT_PORT;
     String database = null;
     String collection = null;
@@ -50,6 +51,10 @@ public class Main {
         Options cliOptions = cliOptions();
         try {
             CommandLine cmdLine = new DefaultParser().parse(cliOptions, args);
+            databaseType = cmdLine.getOptionValue("dbt");
+            if(databaseType == null || databaseType.isEmpty()){
+                throw new IllegalArgumentException("Database type must not be empty!");
+            }
             if(cmdLine.hasOption("v")){
                 System.out.print("version " + version);
                 System.exit(0);
@@ -261,6 +266,7 @@ public class Main {
                 .addOption(Option.builder("u").longOpt("user").hasArg().argName("USER").desc("mongoDB user").build())
                 .addOption(Option.builder("p").longOpt("password").hasArg().argName("PASSWORD").desc("mongoDB password").build())
                 .addOption(Option.builder("adb").longOpt("authdb").hasArg().argName("AUTH_DB").desc("mongoDB database to be authenticated against (default: value of parameter -db)").build())
+                .addOption(Option.builder("dbt").longOpt("databasetype").hasArg().argName("DB_TYPE").desc("mongoDB database or cassandra database").build())
                 .addOption(new Option("ssl", "ssl", false, "use SSL to connect to mongoDB"))
         ;
 
