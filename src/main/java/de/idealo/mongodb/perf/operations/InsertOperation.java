@@ -22,7 +22,7 @@ public class InsertOperation extends AbstractOperation {
     @Override
     long executeQuery(int threadId, long threadRunCount, long globalRunCount, long selectorId, long randomId) {
 
-        final Document doc = new Document("_id", maxId + globalRunCount);
+        final Document doc = new Document("id", maxId + globalRunCount);
         doc.put(THREAD_ID, threadId);
         doc.put(THREAD_RUN_COUNT, threadRunCount);
         doc.put(RANDOM_LONG, randomId);

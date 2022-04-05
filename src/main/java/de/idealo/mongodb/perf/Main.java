@@ -6,6 +6,8 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -195,7 +197,7 @@ public class Main {
                             OperationModes.DELETE_MANY.name()+" or a whole set of modes simultaneously." +
                             "\n  Modes explained:" +
                             "\n  " + OperationModes.INSERT.name() + " inserts documents with the following fields:" +
-                            "\n     " + IOperation.ID + ": incremented long number starting from max(_id)+1, reflecting the number of inserts being executed" +
+                            "\n     " + IOperation.ID + ": incremented long number starting from max(id)+1, reflecting the number of inserts being executed" +
                             "\n     " + IOperation.THREAD_ID + ": number of the thread inserting the document, starting from 1" +
                             "\n     " + IOperation.THREAD_RUN_COUNT + ": number of inserts being executed by this thread, starting from 1" +
                             "\n     " + IOperation.RANDOM_LONG + ": a random long number" +
@@ -273,8 +275,15 @@ public class Main {
         return options;
     }
 
-    private void executeOperations() {
+    private void executeOperations() throws UnknownHostException {
+        if (databaseType.equalsIgnoreCase("mongo")) {
+            executeMongoDBPerfTest();
+        } else {
+            executeCassandraPerfTest();
+        }
+    }
 
+    private void executeMongoDBPerfTest() {
         final ServerAddress serverAddress = new ServerAddress(host, port);
         final MongoDbAccessor mongoDbAccessor = new MongoDbAccessor(user, password, authDb, ssl, serverAddress);
 
@@ -331,14 +340,62 @@ public class Main {
 
         } catch (Exception e) {
             LOG.error("Error while waiting on thread.", e);
-        }finally {
+        } finally {
             executor.shutdown();
             mongoDbAccessor.closeConnections();
         }
-
     }
 
-    public static void main(String... args){
+    private void executeCassandraPerfTest() throws UnknownHostException {
+        final CassandraDbAccessor cassandraDbAccessor = new CassandraDbAccessor(user, password, ssl, port, InetAddress.getByName(host));
+        boolean isCreated = cassandraDbAccessor.createKeyspaceAndTableIfNotExists(database, collection);
+        if (!isCreated) {
+            return;
+        }
+        int run=0;
+        CountDownLatch runModeLatch = new CountDownLatch(modes.size());
+        final ExecutorService executor = Executors.newFixedThreadPool(modes.size());
+        try {
+            for(int threadCount : threadCounts) {
+                if(run >= modes.size()){
+                    run = 0;
+                    LOG.info("All run modes are running with their specified number of threads. Waiting on finishing of each run mode before continuing...");
+                    runModeLatch.await();
+                    runModeLatch = new CountDownLatch(modes.size());
+                }
+
+//                final String mode = modes.get(run);
+                final long operationsCount = operationsCounts.size()>run?operationsCounts.get(run):operationsCounts.get(0);
+                IOperation operation = null;
+
+                InsertCassandraOperation insertOperation = new InsertCassandraOperation(cassandraDbAccessor, database, collection, IOperation.ID);
+                if (dropDb) {
+                    LOG.info("drop database '{}'", database);
+                    cassandraDbAccessor.dropKeyspace(insertOperation.getSession(), database);
+                    LOG.info("database '{}' dropped", database);
+                }
+                if(randomFieldLength > 0){
+                    insertOperation.setRandomFieldLength(randomFieldLength);
+                }
+                operation = insertOperation;
+
+                OperationExecutor operationExecutor = new OperationExecutor(threadCount, operationsCount, maxDurationInSeconds, operation, runModeLatch);
+                executor.execute(operationExecutor);
+                run++;
+            }
+
+            runModeLatch.await();
+
+        } catch (Exception e) {
+            LOG.error("Error while waiting on thread.", e);
+        } finally {
+            executor.shutdown();
+            cassandraDbAccessor.closeConnections();
+        }
+    }
+
+
+    public static void main(String... args) throws UnknownHostException{
         Main m = new Main();
         m.validateInput(args);
         m.executeOperations();
