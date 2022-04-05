@@ -37,15 +37,15 @@ Once documents are inserted, run mode=UPDATE_ONE, mode=UPDATE_MANY, mode=COUNT_O
 mode=DELETE_MANY or a whole set of modes simultaneously.
   Modes explained:
   INSERT inserts documents with the following fields:
-     _id: incremented long number starting from max(_id)+1, reflecting the number of inserts being executed
+     id: incremented long number starting from max(id)+1, reflecting the number of inserts being executed
      threadId: number of the thread inserting the document, starting from 1
      threadRunCount: number of inserts being executed by this thread, starting from 1
      rnd: a random long number
      rndTxt: a random text, size defined by user (default 0, thus absent)
      v: version number of the document, starting from 1
-  UPDATE_ONE updates one document randomly queried on field '_id' by incrementing the field 'v' and updating the field 'rnd' to a random value.
+  UPDATE_ONE updates one document randomly queried on field 'id' by incrementing the field 'v' and updating the field 'rnd' to a random value.
   UPDATE_MANY updates all documents randomly queried on field 'threadRunCount' by incrementing the field 'v' and updating the field 'rnd' to a random value.
-  COUNT_ONE counts one document randomly queried on field '_id'.
+  COUNT_ONE counts one document randomly queried on field 'id'.
   COUNT_MANY counts all documents randomly queried on field 'threadRunCount'.
   ITERATE_ONE finds one document randomly queried on field '_id'.
   ITERATE_MANY finds and iterates all documents randomly queried on field 'threadRunCount'.
@@ -170,7 +170,7 @@ Columns explained:
 ### Document structure
 
 The inserted documents have the following fields:
-* `_id`: incremented long number starting from max(_id)+1, reflecting the number of inserts being executed
+* `_id`: incremented long number starting from max(id)+1, reflecting the number of inserts being executed
 * `threadId`: number of the thread inserting the document, starting from 1
 * `threadRunCount`: number of inserts being executed by this thread, starting from 1
 * `rnd`: a random long number
@@ -179,7 +179,7 @@ The inserted documents have the following fields:
 
 ### Operations "...ONE" and "...MANY"
 
-The operations "...ONE" rely on field `_id`. Since `_id` is unique, it will match exactly one document for one operation. The tool selects min and max of `_id` before it starts the performance test, which allows to randomly select single documents in the right range of `_id`.
+The operations "...ONE" rely on field `id`. Since `id` is unique, it will match exactly one document for one operation. The tool selects min and max of `_id` before it starts the performance test, which allows to randomly select single documents in the right range of `_id`.
 
 The operations "...MANY" rely on field `threadRunCount`. The field is indexed before queried the first time in order to determine min and max. Also, it would not make any sense to query an unindexed field when testing performance. Building the index may take a longer time, which may lead the test to a time-out-exception, so you have to wait until the index is built before you restart the test run.
 

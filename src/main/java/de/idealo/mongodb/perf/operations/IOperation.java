@@ -17,7 +17,7 @@ public interface IOperation {
     long getAffectedDocuments();
 
     //document field names:
-    String ID = "_id";
+    String ID = "id";
     String THREAD_ID = "threadId";
     String THREAD_RUN_COUNT = "threadRunCount";
     String GLOBAL_RUN_COUNT = "globbalRunCount";
